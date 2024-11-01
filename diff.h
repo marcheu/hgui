@@ -6,7 +6,7 @@
 extern std::vector < char *>diff;
 extern int diff_lines;
 extern int diff_cursor;
-void diff_read (int commit_id);
+void diff_read (char node[]);
 void diff_update_cursor ();
 
 #endif

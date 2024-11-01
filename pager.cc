@@ -9,7 +9,7 @@ int list_size;
 bool show_commit = false;
 
 
-static void update_cursor (int (*get_size) (), int (*get_commit) (int))
+static void update_cursor (int (*get_size) (), void (*get_commit) (int, char[]))
 {
 	int current_size = get_size ();
 
@@ -32,13 +32,14 @@ static void update_cursor (int (*get_size) (), int (*get_commit) (int))
 	diff_update_cursor ();
 
 	if (show_commit) {
-		int commit_id = get_commit (cursor);
-		if (commit_id >= 0)
-			diff_read (commit_id);
+		char node[MAX_NODE_SIZE];
+		get_commit (cursor, node);
+		if (node[0] != '-')
+			diff_read (node);
 	}
 }
 
-void pager_run (int (*get_size) (), void (*update) (), int (*get_commit) (int))
+void pager_run (int (*get_size) (), void (*update) (), void (*get_commit) (int, char[]))
 {
 	view_init ();
 	list_size = view_height ();

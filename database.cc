@@ -10,8 +10,7 @@ static pthread_t database_pthread[NUM_THREADS];
 static std::atomic_int active_threads;
 static bool quit = false;
 
-static int database_index = -1;
-static std::vector < database_entry > database;
+static std::map < uint64_t, database_entry > database;
 
 static const database_entry not_found = {
 	"              ",
@@ -28,57 +27,46 @@ static std::mutex job_mutex;
 
 static std::mutex database_mutex;
 
-static void add_revision_entry (char *str)
+static void add_revision_entry (database_entry * e, char *str)
 {
-	database_index++;
-	database.resize (database_index + 1);
-	database_entry *de = &database[database_index];
-	bzero (de, sizeof (database_entry));
-
-	concat (&de->revision, str);
+	concat (&e->revision, str);
 }
 
-static void add_node_entry (char *str)
+static void add_node_entry (database_entry * e, char *str)
 {
-	database_entry *de = &database[database_index];
-	concat (&de->node, str);
+	concat (&e->node, str);
 }
 
-static void add_author_email_entry (char *str)
+static void add_author_email_entry (database_entry * e, char *str)
 {
-	database_entry *de = &database[database_index];
-	concat (&de->author_email, str);
+	concat (&e->author_email, str);
 }
 
-static void add_author_entry (char *str)
+static void add_author_entry (database_entry * e, char *str)
 {
-	database_entry *de = &database[database_index];
-	concat (&de->author, str);
+	concat (&e->author, str);
 }
 
-static void add_date_entry (char *str)
+static void add_date_entry (database_entry * e, char *str)
 {
-	database_entry *de = &database[database_index];
-	concat (&de->date, str);
+	concat (&e->date, str);
 }
 
-static void add_message_entry (char *str)
+static void add_message_entry (database_entry * e, char *str)
 {
-	database_entry *de = &database[database_index];
+	if (!e->summary)
+		concat (&e->summary, str);
 
-	if (!de->summary)
-		concat (&de->summary, str);
-
-	concat (&de->message, str);
+	concat (&e->message, str);
 }
 
-static void discard (char *str)
+static void discard (database_entry * e, char *str)
 {
 }
 
 static struct func_callback {
 	char pattern[32];
-	void (*callback) (char *);
+	void (*callback) (database_entry * e, char *);
 } callback_list[] = {
 	{"/@revision=", add_revision_entry},
 	{"/@node=", add_node_entry},
@@ -90,11 +78,11 @@ static struct func_callback {
 	{"/msg/", discard},
 	{"/msg=", add_message_entry},
 	{"/branch=", discard},
-	{"\0", NULL},
+	{"\0", discard},
+	{"", NULL},
 };
 
-// requires database_mutex to be held
-static void store_section (char buf[])
+static void store_section (database_entry * e, char buf[])
 {
 	int i = 0;
 	const int offset = strlen ("/log/logentry");
@@ -105,7 +93,7 @@ static void store_section (char buf[])
 
 	while (callback_list[i].callback) {
 		if (!strncmp (buf + offset, callback_list[i].pattern, strlen (callback_list[i].pattern))) {
-			callback_list[i].callback (buf + offset + strlen (callback_list[i].pattern));
+			callback_list[i].callback (e, buf + offset + strlen (callback_list[i].pattern));
 			return;
 		}
 		i++;
@@ -119,24 +107,14 @@ static void store_section (char buf[])
 // requires database_mutex to be held
 static bool have_commit (char *commit)
 {
-	int i = 0;
-	while (i < database.size ()) {
-		if (!strcmp (database[i].revision, commit)) {
-			return true;
-		}
-		i++;
-	}
-	return false;
+	return database.contains (node2int (commit));
 }
 
-void database_read_commit (int commit_id)
+void database_read_commit (char *node)
 {
-	char commit_str[128];
-	sprintf (commit_str, "%d", commit_id);
-
 	// Add that read to our queue and return
 	job_mutex.lock ();
-	job_queue.push (strdup (commit_str));
+	job_queue.push (strdup (node));
 	job_mutex.unlock ();
 }
 
@@ -156,16 +134,20 @@ static void database_do_read_commit (char *commit)
 	FILE *f = popen (cmd, "r");
 
 	char buf[MAX_LINE_SIZE];
-	wait_file_readable (f);
+
+	database_entry e;
+	bzero (&e, sizeof (database_entry));
+
+	while (readline (buf, MAX_LINE_SIZE, f) != NULL) {
+		store_section (&e, buf);
+	}
+
+	pclose (f);
 
 	// We need to make sure writing the entire metadata is atomic
 	database_mutex.lock ();
-	while (readline (buf, MAX_LINE_SIZE, f) != NULL) {
-		store_section (buf);
-	}
+	database[node2int (e.node)] = e;
 	database_mutex.unlock ();
-
-	pclose (f);
 }
 
 void *database_thread (void *unused)
@@ -198,6 +180,8 @@ void *database_thread (void *unused)
 
 void database_init ()
 {
+	database.clear ();
+
 	active_threads = 0;
 	for (int i = 0; i < NUM_THREADS; i++)
 		pthread_create (&database_pthread[i], NULL, database_thread, NULL);
@@ -211,32 +195,27 @@ void database_close ()
 	for (int i = 0; i < NUM_THREADS; i++)
 		pthread_join (database_pthread[i], NULL);
 
-	for (int i = 0; i <= database_index; i++) {
-		free (database[i].revision);
-		free (database[i].message);
-		free (database[i].summary);
-		free (database[i].author);
-		free (database[i].author_email);
-		free (database[i].date);
-		free (database[i].node);
+	for (auto it = database.begin (); it != database.end (); it++) {
+		database_entry e = it->second;
+		free (e.revision);
+		free (e.message);
+		free (e.summary);
+		free (e.author);
+		free (e.author_email);
+		free (e.date);
+		free (e.node);
 	}
+	database.clear ();
 }
 
-const database_entry *database_get_commit (int commit_id)
+const database_entry *database_get_commit (char *node)
 {
-	char commit_str[128];
-	sprintf (commit_str, "%d", commit_id);
-
-	int i = 0;
-	while (i < database.size ()) {
-		if (!strcmp (database[i].revision, commit_str)) {
-			return &database[i];
-		}
-		i++;
-	}
+	if (database.contains (node2int (node)))
+		return &database[node2int (node)];
 
 	// We didn't find the entry, so let's return the special
 	// "not found" entry
+
 	return &not_found;
 }
 

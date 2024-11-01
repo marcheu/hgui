@@ -10,7 +10,7 @@
 
 static pthread_t log_pthread;
 
-static std::vector < int >commit_log;
+static std::vector < char *>commit_log;
 
 static void *log_thread (void *file)
 {
@@ -18,7 +18,7 @@ static void *log_thread (void *file)
 
 	// list all the commit revisions in the log
 	char cmd[MAX_CMD_SIZE];
-	sprintf (cmd, "hg log --template '{rev}\n' ");
+	sprintf (cmd, "hg log --template '{node}\n' ");
 	if (filename)
 		strcat (cmd, filename);
 
@@ -26,13 +26,12 @@ static void *log_thread (void *file)
 	if (!f)
 		return NULL;
 
-	char buf[MAX_LINE_SIZE];
-	while (readline (buf, MAX_LINE_SIZE, f) != NULL) {
-		// add each commit to the database
-		int commit_id;
-		sscanf (buf, "%d", &commit_id);
-		database_read_commit (commit_id);
-		commit_log.push_back (commit_id);
+	char buf[MAX_NODE_SIZE];
+	while (readline (buf, MAX_NODE_SIZE, f) != NULL) {
+		// Force terminate the input
+		buf[MAX_NODE_SIZE - 1] = 0;
+		database_read_commit (buf);
+		commit_log.push_back (strdup (buf));
 	}
 
 	pclose (f);
@@ -45,7 +44,8 @@ static void log_update ()
 	int line = 0;
 
 	for (int i = start_line; i < min (start_line + list_size, (int) commit_log.size ()); i++, line++) {
-		int commit_id = commit_log[i];
+		char node[MAX_NODE_SIZE];
+		strcpy (node, commit_log[i]);
 
 		// Clear the entire line
 		if (i == cursor) {
@@ -60,7 +60,7 @@ static void log_update ()
 
 		// Lookup the commit info from the database
 		const database_entry *info;
-		info = database_get_commit (commit_id);
+		info = database_get_commit (node);
 
 		// Date
 		if (i == cursor)
@@ -88,12 +88,12 @@ static void log_update ()
 		printw ("%.8s ", info->node);
 
 		// Revision number
-		if (i == cursor)
+/*		if (i == cursor)
 			attron (COLOR_PAIR (8));
 		else
 			attron (COLOR_PAIR (6));
 
-		print_with_pad (commit_log[i], commit_log[0]);
+		print_with_pad (commit_log[i], commit_log[0]);*/
 
 		// Commit summary
 		if (i == cursor)
@@ -110,9 +110,10 @@ static void log_update ()
 	for (int x = 0; x < view_width (); x++)
 		printw (" ");
 
-	int commit_id = commit_log[cursor];
+	char node[MAX_NODE_SIZE];
+	strcpy (node, commit_log[cursor]);
 	const database_entry *info;
-	info = database_get_commit (commit_id);
+	info = database_get_commit (node);
 
 	mvprintw (list_size, 0, "[log] %d/%lu   %s <%s>   %s   %s", cursor, commit_log.size () - 1, info->author, info->author_email, info->revision, info->node);
 
@@ -152,9 +153,9 @@ static int log_get_size ()
 	return commit_log.size ();
 }
 
-static int log_get_commit (int cursor)
+static void log_get_commit (int cursor, char node[])
 {
-	return commit_log[cursor];
+	strcpy (node, commit_log[cursor]);
 }
 
 

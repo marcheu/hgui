@@ -6,6 +6,7 @@
 #include <curses.h>
 #include <dirent.h>
 #include <errno.h>
+#include <map>
 #include <math.h>
 #include <mutex>
 #include <pthread.h>

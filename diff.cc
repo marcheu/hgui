@@ -9,15 +9,15 @@ std::vector < char *>diff;
 int diff_lines = 0;
 int diff_cursor = 0;
 
-void diff_read (int commit_id)
+void diff_read (char node[])
 {
-	static int current_diff = -1;
+	static char current_diff[MAX_NODE_SIZE] = " ";
 
-	if (current_diff == commit_id)
+	if (!strcmp (current_diff, node))
 		return;
 
 	char cmd[MAX_CMD_SIZE];
-	sprintf (cmd, "hg log -r %d  -v -p -g --stat --template compact", commit_id);
+	sprintf (cmd, "hg log -r %s  -v -p -g --stat --template compact", node);
 	FILE *f = popen (cmd, "r");
 
 	char buf[MAX_LINE_SIZE];
@@ -35,7 +35,7 @@ void diff_read (int commit_id)
 	}
 	pclose (f);
 
-	current_diff = commit_id;
+	strcpy (current_diff, node);
 }
 
 void diff_update_cursor ()

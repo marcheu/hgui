@@ -12,5 +12,6 @@ uint64_t get_time ();
 void print_with_pad (int num, int max_num);
 void clear_rest_of_screen ();
 void concat (char **s1, char *s2);
+uint64_t node2int (char *node);
 
 #endif

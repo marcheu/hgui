@@ -25,13 +25,15 @@ static void hash_node (char *node)
 }
 
 /* Extract the revision number from a blame line */
-static int get_revision_for_line (int line)
+static void get_revision_for_line (int line, char revision[MAX_NODE_SIZE])
 {
-	if (line < 0)
-		return -1;
-	int revision;
-	sscanf (blame[line], "%d:", &revision);
-	return revision;
+	if (line < 0) {
+		revision[0] = '-';
+		revision[1] = 0;
+		return;
+	}
+	memcpy (revision, blame[line], 12);
+	revision[12] = 0;
 }
 
 static void blame_update ()
@@ -40,7 +42,8 @@ static void blame_update ()
 
 	for (int i = start_line; i < min (start_line + list_size, (int) blame.size ()); i++, line++) {
 		char *code;
-		int commit_id = get_revision_for_line (i);
+		char node[MAX_NODE_SIZE];
+		get_revision_for_line (i, node);
 		code = blame[i];
 		while (*code != ':')
 			code++;
@@ -59,7 +62,7 @@ static void blame_update ()
 
 		// Lookup the commit info from the database
 		const database_entry *info;
-		info = database_get_commit (commit_id);
+		info = database_get_commit (node);
 
 		// Commit hash
 		attron (A_BOLD);
@@ -110,9 +113,10 @@ static void blame_update ()
 	for (int x = 0; x < view_width (); x++)
 		printw (" ");
 
-	int commit_id = get_revision_for_line (cursor);
+	char node[MAX_NODE_SIZE];
+	get_revision_for_line (cursor, node);
 	const database_entry *info;
-	info = database_get_commit (commit_id);
+	info = database_get_commit (node);
 
 	mvprintw (list_size, 0, "[blame] %d/%lu   %s <%s>   %s   %s", cursor, blame.size () - 1, info->author, info->author_email, info->revision, info->node);
 
@@ -152,9 +156,9 @@ static int blame_get_size ()
 	return blame.size ();
 }
 
-static int blame_get_commit (int cursor)
+static void blame_get_commit (int cursor, char node[])
 {
-	return get_revision_for_line (cursor);
+	get_revision_for_line (cursor, node);
 }
 
 void blame_show (int argc, char *argv[])
@@ -163,7 +167,7 @@ void blame_show (int argc, char *argv[])
 		return;
 
 	char cmd[MAX_CMD_SIZE];
-	sprintf (cmd, "hg blame %s", argv[0]);
+	sprintf (cmd, "hg blame -c %s", argv[0]);
 	FILE *f = popen (cmd, "r");
 	if (!f)
 		return;
@@ -175,14 +179,16 @@ void blame_show (int argc, char *argv[])
 	// Read the entire file and put it in memory
 	// At the same time, request commit information for all the commits asynchronously
 	while (readline (buf, MAX_LINE_SIZE, f) != NULL) {
-		int commit_id;
 
 		if (!strncmp (buf, "abort", 5))
 			break;
 
 		blame.push_back (strdup (buf));
-		sscanf (buf, "%d:", &commit_id);
-		database_read_commit (commit_id);
+
+		char node[MAX_NODE_SIZE];
+		memcpy (node, buf, 12);
+		buf[12] = 0;
+		database_read_commit (node);
 	}
 
 	if (pclose (f) == -1) {

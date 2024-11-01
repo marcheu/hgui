@@ -1,6 +1,8 @@
 #ifndef _DATABASE_H_
 #define _DATABASE_H_
 
+#include "constants.h"
+
 typedef struct database_entry {
 	char *revision;
 	char *message;
@@ -14,8 +16,8 @@ typedef struct database_entry {
 
 void database_init ();
 void database_close ();
-void database_read_commit (int commit_id);
-const database_entry *database_get_commit (int commit_id);
+void database_read_commit (char *node);
+const database_entry *database_get_commit (char *node);
 bool database_active ();
 
 #endif

@@ -87,3 +87,17 @@ void concat (char **s1, char *s2)
 	free (*s1);
 	*s1 = ret;
 }
+
+uint64_t node2int (char *node)
+{
+	uint64_t r;
+	char buf[13];
+	if (strlen (node) < 12) {
+		printf ("Node too small %s\n", node);
+		assert (0);
+	}
+	memcpy (buf, node, 12);
+	buf[12] = 0;
+	sscanf (buf, "%016lx", &r);
+	return r;
+}
