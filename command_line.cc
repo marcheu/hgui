@@ -3,13 +3,7 @@
 #include "blame.h"
 #include "command_line.h"
 #include "log.h"
-
-#if 0
-void show_commit ()
-{
-// popen("hg log -r commitid  -v -p -g")
-}
-#endif
+#include "show.h"
 
 typedef struct {
 	const char *name;
@@ -17,8 +11,9 @@ typedef struct {
 } function_table_entry;
 
 function_table_entry function_table[] = {
-	{"log", log_show},
-	{"blame", blame_show},
+	{"log", log_run},
+	{"blame", blame_run},
+	{"show", show_run},
 	{"", NULL},
 };
 

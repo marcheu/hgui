@@ -8,9 +8,9 @@
 #include "util.h"
 #include "view.h"
 
-static char* commit_id;
+static char *commit_id;
 
-static int show_update()
+static int show_update ()
 {
 	if (!show_commit)
 		return 1;
@@ -44,14 +44,14 @@ static int show_update()
 	return 0;
 }
 
-static int show_get_size()
+static int show_get_size ()
 {
 	return 0;
 }
 
 static void show_get_commit (int cursor, char node[])
 {
-	strcpy(node, commit_id);
+	strcpy (node, commit_id);
 }
 
 
@@ -60,11 +60,9 @@ void show_run (int argc, char *argv[])
 	if (argc == 0)
 		return;
 
-	commit_id = strdup(argv[0]);
+	commit_id = strdup (argv[0]);
 
 	show_commit = true;
 
 	pager_run (show_get_size, show_update, show_get_commit);
 }
-
-

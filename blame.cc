@@ -36,7 +36,7 @@ static void get_revision_for_line (int line, char revision[MAX_NODE_SIZE])
 	revision[12] = 0;
 }
 
-static void blame_update ()
+static int blame_update ()
 {
 	int line = 0;
 
@@ -149,6 +149,8 @@ static void blame_update ()
 	}
 
 	clear_rest_of_screen ();
+
+	return 0;
 }
 
 static int blame_get_size ()
@@ -161,7 +163,7 @@ static void blame_get_commit (int cursor, char node[])
 	get_revision_for_line (cursor, node);
 }
 
-void blame_show (int argc, char *argv[])
+void blame_run (int argc, char *argv[])
 {
 	if (argc == 0)
 		return;

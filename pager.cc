@@ -39,7 +39,7 @@ static void update_cursor (int (*get_size) (), void (*get_commit) (int, char[]))
 	}
 }
 
-void pager_run (int (*get_size) (), void (*update) (), void (*get_commit) (int, char[]))
+void pager_run (int (*get_size) (), int (*update) (), void (*get_commit) (int, char[]))
 {
 	view_init ();
 	list_size = view_height ();
@@ -102,7 +102,8 @@ void pager_run (int (*get_size) (), void (*update) (), void (*get_commit) (int, 
 
 		update_cursor (get_size, get_commit);
 
-		update ();
+		if (update ())
+			done = true;
 
 		view_refresh ();
 	}

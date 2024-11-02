@@ -7,10 +7,11 @@ interface. It is similar to tig but for mercurial
 
 ## What does it do?
 
-Right now it supports two commands:
+Right now it supports three commands:
 
 + hgui log [file]
 + hgui blame [file]
++ hgui show [rev]
 
 ## Navigation
 

@@ -39,7 +39,7 @@ static void *log_thread (void *file)
 	return NULL;
 }
 
-static void log_update ()
+static int log_update ()
 {
 	int line = 0;
 
@@ -146,6 +146,8 @@ static void log_update ()
 	}
 
 	clear_rest_of_screen ();
+
+	return 0;
 }
 
 static int log_get_size ()
@@ -159,7 +161,7 @@ static void log_get_commit (int cursor, char node[])
 }
 
 
-void log_show (int argc, char *argv[])
+void log_run (int argc, char *argv[])
 {
 	database_init ();
 
