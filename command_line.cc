@@ -7,7 +7,7 @@
 
 typedef struct {
 	const char *name;
-	void (*func) (int argc, char *argv[]);
+	int (*func) (int argc, char *argv[]);
 } function_table_entry;
 
 function_table_entry function_table[] = {
@@ -26,8 +26,7 @@ int parse_command_line (int argc, char *argv[])
 	int i = 0;
 	while (function_table[i].func != NULL) {
 		if (!strcmp (function_table[i].name, argv[0])) {
-			function_table[i].func (argc - 1, argv + 1);
-			return 0;
+			return function_table[i].func (argc - 1, argv + 1);
 		}
 		i++;
 	}

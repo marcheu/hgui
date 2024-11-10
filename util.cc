@@ -15,7 +15,13 @@ void wait_file_readable (FILE * f)
 
 }
 
-/* reads a line from a file but strips \n and \r */
+/* Checks if a file exsistst */
+bool file_exists (char *name)
+{
+	return (access (name, F_OK) == 0);
+}
+
+/* Reads a line from a file but strips \n and \r */
 char *readline (char *buf, int size, FILE * f)
 {
 	char *ret = fgets (buf, MAX_LINE_SIZE, f);

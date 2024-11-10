@@ -55,14 +55,16 @@ static void show_get_commit (int cursor, char node[])
 }
 
 
-void show_run (int argc, char *argv[])
+int show_run (int argc, char *argv[])
 {
 	if (argc == 0)
-		return;
+		return -1;
 
 	commit_id = strdup (argv[0]);
 
 	show_commit = true;
 
 	pager_run (show_get_size, show_update, show_get_commit);
+
+	return 0;
 }

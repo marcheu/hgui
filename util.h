@@ -7,6 +7,7 @@
 #define max(a,b) ((a)>(b)?(a):(b))
 
 void wait_file_readable (FILE * f);
+bool file_exists (char *name);
 char *readline (char *buf, int size, FILE * f);
 uint64_t get_time ();
 void print_with_pad (int num, int max_num);

@@ -161,15 +161,19 @@ static void log_get_commit (int cursor, char node[])
 }
 
 
-void log_run (int argc, char *argv[])
+int log_run (int argc, char *argv[])
 {
 	database_init ();
 
 	char *file;
-	if (argc > 0)
+	if (argc > 0) {
 		file = argv[0];
-	else
+		if (!file_exists (file))
+			return -1;
+	}
+	else {
 		file = NULL;
+	}
 
 	pthread_create (&log_pthread, NULL, log_thread, file);
 
@@ -178,4 +182,6 @@ void log_run (int argc, char *argv[])
 	pthread_join (log_pthread, NULL);
 
 	database_close ();
+
+	return 0;
 }

@@ -50,7 +50,8 @@ int check_hg_repo ()
 	}
 
 	// Go back to the original directory and error out
-	chdir (original_directory);
+	if (chdir (original_directory) == -1)
+		return -ENOENT;
 	return -ENOENT;
 }
 

@@ -163,16 +163,19 @@ static void blame_get_commit (int cursor, char node[])
 	get_revision_for_line (cursor, node);
 }
 
-void blame_run (int argc, char *argv[])
+int blame_run (int argc, char *argv[])
 {
 	if (argc == 0)
-		return;
+		return -1;
+
+	if (!file_exists (argv[0]))
+		return -1;
 
 	char cmd[MAX_CMD_SIZE];
 	sprintf (cmd, "hg blame -c %s", argv[0]);
 	FILE *f = popen (cmd, "r");
 	if (!f)
-		return;
+		return -1;
 
 	database_init ();
 
@@ -195,10 +198,12 @@ void blame_run (int argc, char *argv[])
 
 	if (pclose (f) == -1) {
 		database_close ();
-		return;
+		return -1;
 	}
 
 	pager_run (blame_get_size, blame_update, blame_get_commit);
 
 	database_close ();
+
+	return 0;
 }
